@@ -15,17 +15,18 @@ import {
   YAxis,
 } from 'recharts';
 import { activityDate, getCurrentStreak, INTERVALS } from '@/lib/revisions';
-import type { DSAQuestion } from '@/types/tracker';
+import type { DSAQuestion, PracticeLogEntry } from '@/types/tracker';
 
 const COLORS = ['#91e3b7', '#efbd68', '#f27b83'];
 type Props = {
   questions: DSAQuestion[];
+  practiceLogs?: PracticeLogEntry[];
   month: string;
   onMonthChange: (month: string) => void;
   compact?: boolean;
 };
 
-export function MonthlyAnalytics({ questions, month, onMonthChange, compact = false }: Props) {
+export function MonthlyAnalytics({ questions, practiceLogs = [], month, onMonthChange, compact = false }: Props) {
   const [year, monthNumber] = month.split('-').map(Number);
   const firstDay = startOfMonth(new Date(year, monthNumber - 1));
   const lastDay = endOfMonth(firstDay);
@@ -40,6 +41,9 @@ export function MonthlyAnalytics({ questions, month, onMonthChange, compact = fa
     return format(date, 'yyyy-MM');
   });
   const monthQuestions = questions.filter((question) => question.solvedDate.startsWith(month));
+  const monthSolvedCount = monthQuestions.length + practiceLogs
+    .filter((entry) => entry.date.startsWith(month))
+    .reduce((count, entry) => count + entry.questionsSolvedCount, 0);
   const difficultyData = ['Easy', 'Medium', 'Hard'].map((difficulty, index) => ({
     name: difficulty,
     value: monthQuestions.filter((question) => question.difficulty === difficulty).length,
@@ -49,7 +53,8 @@ export function MonthlyAnalytics({ questions, month, onMonthChange, compact = fa
     const date = format(day, 'yyyy-MM-dd');
     return {
       label: format(day, 'd'),
-      solved: monthQuestions.filter((question) => question.solvedDate === date).length,
+      solved: monthQuestions.filter((question) => question.solvedDate === date).length
+        + practiceLogs.filter((entry) => entry.date === date).reduce((count, entry) => count + entry.questionsSolvedCount, 0),
       date,
     };
   });
@@ -76,6 +81,10 @@ export function MonthlyAnalytics({ questions, month, onMonthChange, compact = fa
         const date = activityDate(stage.completedAt);
         practiceCounts.set(date, (practiceCounts.get(date) ?? 0) + 1);
       }
+      for (const entry of practiceLogs) {
+        const count = entry.questionsSolvedCount + entry.revisionsCompletedCount;
+        if (count > 0) practiceCounts.set(entry.date, (practiceCounts.get(entry.date) ?? 0) + count);
+      }
     }
   }
   const topTopic = Object.entries(topicCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—';
@@ -85,6 +94,9 @@ export function MonthlyAnalytics({ questions, month, onMonthChange, compact = fa
       .filter((stage) => stage.completedAt)
       .map((stage) => activityDate(stage.completedAt!)),
   ]);
+  activityDates.push(...practiceLogs
+    .filter((entry) => entry.questionsSolvedCount + entry.revisionsCompletedCount > 0 || entry.manualOverride)
+    .map((entry) => entry.date));
   const activeStreak = getCurrentStreak(activityDates);
 
   return (
@@ -106,7 +118,7 @@ export function MonthlyAnalytics({ questions, month, onMonthChange, compact = fa
       </div>
 
       <div className="report-kpis">
-        <div><span>QUESTIONS SOLVED</span><strong>{monthQuestions.length}</strong><small>in {format(firstDay, 'MMMM')}</small></div>
+        <div><span>QUESTIONS SOLVED</span><strong>{monthSolvedCount}</strong><small>in {format(firstDay, 'MMMM')}</small></div>
         <div><span>REVISION ON TIME</span><strong>{completionRate}<i>%</i></strong><small>{completedOnTime} of {scheduled.length} milestones</small></div>
         <div><span>ACTIVE STREAK</span><strong>{activeStreak}<i>{activeStreak === 1 ? ' day' : ' days'}</i></strong><small>and counting</small></div>
         <div><span>MOST PRACTICED</span><strong className="topic-kpi">{topTopic}</strong><small>your focus topic</small></div>

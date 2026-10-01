@@ -23,6 +23,36 @@ export interface DSAQuestion {
   createdAt: number;
 }
 
+export interface PracticeLogEntry {
+  id: string;
+  date: string;
+  questionsSolvedCount: number;
+  revisionsCompletedCount: number;
+  manualOverride?: boolean;
+  notes?: string;
+}
+
+export interface StreakMilestone {
+  days: number;
+  title: string;
+  badge: string;
+  unlocked: boolean;
+  unlockedAt?: string;
+}
+
+export interface UserSettings {
+  email?: string;
+  emailNotificationsEnabled: boolean;
+  preferredEmailTime: string;
+  streakFreezeAvailable: number;
+  soundEnabled: boolean;
+}
+
+export interface StoredUserSettings {
+  id: string;
+  value: UserSettings;
+}
+
 export interface UserStats {
   streak: number;
   lastActiveDate: string;

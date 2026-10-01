@@ -460,3 +460,90 @@ button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+.engagement-tools { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; margin: 15px 0; }
+.engagement-card { min-width: 0; padding: 15px; border: 1px solid var(--line-soft); border-radius: 9px; background: linear-gradient(150deg, rgba(19, 26, 29, .88), rgba(15, 20, 22, .82)); }
+.analyst-card, .manual-log-card { grid-column: 1 / -1; }
+.tools-heading { display: flex; align-items: center; gap: 10px; margin-bottom: 13px; }
+.tools-icon { width: 31px; height: 31px; flex: 0 0 31px; display: grid; place-items: center; border: 1px solid currentColor; border-radius: 8px; }
+.analyst-icon { color: #a6eac2; background: rgba(143, 222, 176, .07); border-color: rgba(143, 222, 176, .17); }
+.trophy-icon { color: #edc575; background: rgba(237, 197, 117, .07); border-color: rgba(237, 197, 117, .17); }
+.calendar-icon { color: #9db8f0; background: rgba(126, 151, 221, .07); border-color: rgba(126, 151, 221, .17); }
+.reschedule-icon { color: #b9a6ef; background: rgba(177, 154, 229, .07); border-color: rgba(177, 154, 229, .17); }
+.email-icon { color: #e4a9a4; background: rgba(225, 151, 143, .07); border-color: rgba(225, 151, 143, .17); }
+.tools-heading .eyebrow { font-size: 8px; }
+.tools-heading h2 { margin: 4px 0 0; color: #dfe8e1; font: 600 13px 'Manrope', sans-serif; letter-spacing: -.2px; }
+.analyst-alert { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border: 1px solid rgba(226, 173, 117, .17); border-radius: 7px; background: rgba(146, 97, 51, .07); }
+.analyst-clear { border-color: rgba(143, 222, 176, .15); background: rgba(105, 172, 124, .055); }
+.risk-indicator { width: 25px; height: 25px; flex: 0 0 25px; display: grid; place-items: center; border-radius: 6px; color: #e5b377; background: rgba(226, 173, 117, .1); }
+.analyst-clear .risk-indicator { color: #a6eac2; background: rgba(143, 222, 176, .1); }
+.analyst-alert strong { color: #dfc39e; font: 600 10px 'Manrope', sans-serif; }
+.analyst-clear strong { color: #bfe3c9; }
+.analyst-alert p, .reschedule-card > p, .email-card > p { margin: 4px 0 0; color: #89958e; font-size: 9px; line-height: 1.55; }
+.topic-risk-list { display: grid; gap: 1px; margin-top: 9px; }
+.topic-risk-row { min-height: 28px; display: grid; grid-template-columns: 1fr 100px 100px; align-items: center; gap: 8px; padding: 4px 7px; border-bottom: 1px solid rgba(149, 168, 159, .07); color: #c2cec5; font-size: 9px; }
+.topic-risk-row > span:nth-child(2) { color: #7f8d84; }
+.topic-risk-row strong { color: #8fca9f; font-size: 8px; font-weight: 500; text-align: right; }
+.topic-risk-row .topic-risk-high { color: #e7b37b; }
+.tools-disclaimer { margin: 9px 0 0; color: #67756c; font-size: 8px; line-height: 1.5; }
+.tools-empty { margin: 0; color: #7f8b84; font-size: 9px; }
+.trophy-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.trophy-badge { min-height: 69px; display: grid; justify-items: center; align-content: center; gap: 3px; padding: 6px 3px; color: #647168; border: 1px solid rgba(149, 168, 159, .09); border-radius: 7px; background: rgba(9, 14, 14, .35); text-align: center; }
+.trophy-badge > span { height: 22px; display: grid; place-items: center; font-size: 16px; filter: grayscale(1); opacity: .55; }
+.trophy-badge strong { color: #8b978e; font: 600 8px 'DM Mono', monospace; }
+.trophy-badge small { overflow: hidden; max-width: 100%; color: #738077; font-size: 7px; text-overflow: ellipsis; white-space: nowrap; }
+.trophy-badge.trophy-unlocked { border-color: rgba(237, 197, 117, .2); background: linear-gradient(145deg, rgba(237, 197, 117, .08), rgba(9, 14, 14, .3)); box-shadow: inset 0 0 15px rgba(237, 197, 117, .025); }
+.trophy-unlocked > span { filter: none; opacity: 1; }
+.trophy-unlocked strong { color: #e2c681; }
+.trophy-unlocked small { color: #b5a477; }
+.freeze-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 11px; padding-top: 10px; border-top: 1px solid rgba(149, 168, 159, .08); }
+.freeze-row > div { display: grid; gap: 4px; }
+.freeze-row strong { display: flex; align-items: center; gap: 5px; color: #d1c29f; font: 600 9px 'Manrope', sans-serif; }
+.freeze-row span { color: #79867e; font-size: 8px; }
+.freeze-row .secondary-button, .reschedule-actions .secondary-button, .manual-log-actions .secondary-button, .manual-log-actions .primary-button, .email-actions .secondary-button, .email-actions .primary-button { height: 30px; padding: 0 9px; font-size: 8px; }
+.manual-log-form { display: grid; grid-template-columns: 1.15fr .7fr .7fr 1.5fr; gap: 9px; align-items: end; }
+.manual-log-form .field-label { font-size: 9px; }
+.manual-log-form .field-label input, .practice-log-entry input, .email-settings-row input { min-height: 32px; padding: 6px 8px; font-size: 9px; }
+.manual-log-form .field-label input[type="date"], .email-settings-row input[type="time"] { color-scheme: dark; }
+.manual-log-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 7px; }
+.practice-log-list { display: grid; gap: 5px; margin-top: 12px; }
+.practice-log-entry { display: grid; grid-template-columns: minmax(145px, 1fr) 65px 65px minmax(110px, 1.3fr) 25px; align-items: end; gap: 8px; padding: 7px 8px; border: 1px solid rgba(149, 168, 159, .07); border-radius: 6px; background: rgba(9, 14, 14, .25); }
+.practice-log-date { display: flex; align-items: end; gap: 7px; }
+.practice-log-date .log-date-input { flex: 1; }
+.practice-log-entry .log-date-input { min-width: 0; }
+.practice-log-entry .log-date-input input { color-scheme: dark; }
+.manual-tag { padding: 2px 4px; color: #8fb99a; border-radius: 3px; background: rgba(143, 222, 176, .08); font: 7px 'DM Mono', monospace; }
+.practice-log-entry label { display: grid; gap: 3px; color: #79867e; font-size: 7px; }
+.practice-log-entry input { width: 100%; color: #d8e3db; border: 1px solid #2b3732; border-radius: 5px; background: rgba(8, 13, 13, .55); }
+.practice-log-entry > button { margin-bottom: 2px; }
+.reschedule-card > p, .email-card > p { margin: -3px 0 12px; }
+.reschedule-actions, .email-actions { display: flex; justify-content: flex-end; gap: 7px; }
+.email-settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; align-items: end; }
+.email-settings-row .field-label { color: #aebbb1; font-size: 8px; }
+.email-time { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 4px; }
+.email-time input { grid-column: 1 / -1; width: 100%; }
+.email-opt-in { display: flex; align-items: center; gap: 7px; margin: 9px 0; color: #9aa79e; font-size: 8px; cursor: pointer; }
+.email-opt-in input { accent-color: #a6f2cd; }
+.email-actions .primary-button:disabled { opacity: .45; }
+.email-card .form-error { font-size: 8px; }
+.email-card > .tools-disclaimer { margin-top: 8px; }
+
+@media (max-width: 830px) {
+  .engagement-tools { grid-template-columns: 1fr; }
+  .analyst-card, .manual-log-card { grid-column: auto; }
+}
+@media (max-width: 600px) {
+  .engagement-card { padding: 12px; }
+  .manual-log-form { grid-template-columns: 1fr 1fr; }
+  .manual-note-field { grid-column: 1 / -1; }
+  .manual-log-actions { flex-wrap: wrap; }
+  .manual-log-actions > button { flex: 1; }
+  .practice-log-entry { grid-template-columns: 1fr 1fr 1fr 25px; gap: 6px; }
+  .practice-log-date { grid-column: 1 / -1; }
+  .practice-log-entry .log-note-input { grid-column: 1 / 4; }
+  .email-settings-row { grid-template-columns: 1fr; }
+  .email-actions { align-items: stretch; flex-direction: column; }
+  .reschedule-actions { flex-wrap: wrap; }
+  .reschedule-actions > button { flex: 1; }
+  .topic-risk-row { grid-template-columns: 1fr 75px 78px; }
+}

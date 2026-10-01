@@ -37,6 +37,7 @@ import {
   X,
 } from 'lucide-react';
 import { AmbientCanvas } from '@/components/ambient-canvas';
+import { EngagementTools } from '@/components/engagement-tools';
 import { MonthlyAnalytics } from '@/components/monthly-analytics';
 import { useTracker, type NewQuestion } from '@/hooks/use-tracker';
 import {
@@ -69,12 +70,14 @@ const difficultyClass: Record<Difficulty, string> = {
 
 export function Dashboard() {
   const tracker = useTracker();
+  const { loading: trackerLoading, awardMilestones } = tracker;
   const [page, setPage] = useState<Page>('Overview');
   const [filter, setFilter] = useState<Filter>('All');
   const [bankView, setBankView] = useState<BankView>('list');
   const [search, setSearch] = useState('');
   const [showQuestionForm, setShowQuestionForm] = useState(false);
   const [showDueModal, setShowDueModal] = useState(false);
+  const [questionFormDate, setQuestionFormDate] = useState<string | undefined>();
   const [month, setMonth] = useState(dateKey().slice(0, 7));
   const [today, setToday] = useState(dateKey());
   const [dailyPlanned, setDailyPlanned] = useState<number | null>(null);
@@ -96,12 +99,17 @@ export function Dashboard() {
     [tracker.questions, today],
   );
   const dueCount = new Set(dueItems.map((item) => item.question.id)).size;
-  const activeDates = tracker.questions.flatMap((question) => [
-    question.solvedDate,
-    ...Object.values(question.stages)
-      .filter((stage) => stage.completedAt)
-      .map((stage) => activityDate(stage.completedAt!)),
-  ]);
+  const activeDates = [
+    ...tracker.questions.flatMap((question) => [
+      question.solvedDate,
+      ...Object.values(question.stages)
+        .filter((stage) => stage.completedAt)
+        .map((stage) => activityDate(stage.completedAt!)),
+    ]),
+    ...tracker.practiceLogs
+      .filter((entry) => entry.questionsSolvedCount + entry.revisionsCompletedCount > 0 || entry.manualOverride)
+      .map((entry) => entry.date),
+  ];
   const streak = getCurrentStreak(activeDates);
   const activeDateSet = new Set(activeDates);
   const streakWeek = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
@@ -161,13 +169,27 @@ export function Dashboard() {
   }, [tracker.loading, dailyPlanned, reviewedToday, dueItems.length]);
 
   useEffect(() => {
-    setSoundEnabled(window.localStorage.getItem('algorecall-sound') !== 'off');
+    if (!tracker.loading) setSoundEnabled(tracker.settings.soundEnabled);
+  }, [tracker.loading, tracker.settings.soundEnabled]);
+
+  useEffect(() => {
     if ('serviceWorker' in navigator) {
       void navigator.serviceWorker.register('/sw.js').catch(() => {
         setNotice('Browser reminders are unavailable in this browser session.');
       });
     }
   }, []);
+
+  useEffect(() => {
+    if (trackerLoading) return;
+    void awardMilestones(streak).then((unlocked) => {
+      if (!unlocked.length) return;
+      confetti({ particleCount: 115, spread: 76, origin: { y: 0.62 }, colors: ['#a6f2cd', '#e7c279', '#f6f4ec'] });
+      setNotice(`${unlocked[unlocked.length - 1].title} · ${unlocked[unlocked.length - 1].days}-day trophy unlocked!`);
+    }).catch(() => {
+      setNotice('A streak trophy could not be saved. Please try again later.');
+    });
+  }, [trackerLoading, awardMilestones, streak]);
 
   const sendReminder = useCallback(() => {
     if (!('Notification' in window) || Notification.permission !== 'granted' || dueCount === 0) return;
@@ -194,6 +216,7 @@ export function Dashboard() {
       setDailyPlanned((planned) => (planned ?? reviewedToday + dueItems.length) + newlyDue);
     }
     setShowQuestionForm(false);
+    setQuestionFormDate(undefined);
     setNotice('Question added to your recall plan.');
     window.setTimeout(() => setNotice(''), 3500);
   };
@@ -220,7 +243,23 @@ export function Dashboard() {
   const toggleSound = () => {
     const next = !soundEnabled;
     setSoundEnabled(next);
-    window.localStorage.setItem('algorecall-sound', next ? 'on' : 'off');
+    void tracker.saveSettings({ soundEnabled: next }).catch((error: unknown) => {
+      setNotice(error instanceof Error ? error.message : 'Sound settings could not be saved.');
+    });
+  };
+
+  const addQuestionForDate = (date: string) => {
+    setQuestionFormDate(date);
+    setShowQuestionForm(true);
+  };
+
+  const rescheduleDue = async (mode: 'catch-up' | 'postpone') => {
+    try {
+      await tracker.rescheduleDueStages(mode);
+      setNotice(mode === 'catch-up' ? 'Overdue milestones are in today’s queue.' : 'Due milestones moved three days ahead.');
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : 'Due milestones could not be rescheduled.');
+    }
   };
 
   const enableNotifications = async () => {
@@ -270,7 +309,15 @@ export function Dashboard() {
         },
       ])),
     }));
-    const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' });
+    const backup = {
+      schemaVersion: 2,
+      exportedAt: new Date().toISOString(),
+      questions: rows,
+      practiceLogs: tracker.practiceLogs,
+      milestones: tracker.milestones,
+      settings: tracker.settings,
+    };
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -417,7 +464,23 @@ export function Dashboard() {
                 </div>
               </section>
 
-              <MonthlyAnalytics questions={tracker.questions} month={month} onMonthChange={setMonth} compact />
+              <EngagementTools
+                questions={tracker.questions}
+                practiceLogs={tracker.practiceLogs}
+                milestones={tracker.milestones}
+                settings={tracker.settings}
+                activeDates={activeDates}
+                streak={streak}
+                dueItems={dueItems}
+                onSavePracticeLog={tracker.savePracticeLog}
+                onSaveSettings={tracker.saveSettings}
+                onUseStreakFreeze={tracker.useStreakFreeze}
+                onAddQuestion={addQuestionForDate}
+                onReschedule={rescheduleDue}
+                onNotice={setNotice}
+              />
+
+              <MonthlyAnalytics questions={tracker.questions} practiceLogs={tracker.practiceLogs} month={month} onMonthChange={setMonth} compact />
 
               <QuestionSection
                 questions={tracker.questions.slice(0, 5)}
@@ -474,7 +537,7 @@ export function Dashboard() {
                 <QuestionBoard questions={boardQuestions} onDelete={tracker.deleteQuestion} />
               )}
               <div className="import-export-row">
-                <div><strong>Bring your tracker with you.</strong><span>Import or export your questions as JSON. Your data stays on this device.</span></div>
+                <div><strong>Bring your tracker with you.</strong><span>Back up questions, practice history, trophies, and settings as JSON.</span></div>
                 <div>
                   <button className="secondary-button" onClick={() => importInputRef.current?.click()}><Upload size={15} /> Import JSON</button>
                   <button className="secondary-button" onClick={exportJson}><ArrowDownToLine size={15} /> Export JSON</button>
@@ -486,19 +549,19 @@ export function Dashboard() {
           {page === 'Monthly report' && (
             <>
               <PageIntro eyebrow="LOOK HOW FAR YOU’VE COME" title="Progress, made visible." description="Small wins add up. Here’s the shape of your practice over time." action={<span className="private-label"><span /> Stored privately on this device</span>} />
-              <MonthlyAnalytics questions={tracker.questions} month={month} onMonthChange={setMonth} />
+              <MonthlyAnalytics questions={tracker.questions} practiceLogs={tracker.practiceLogs} month={month} onMonthChange={setMonth} />
               <section className="content-card report-note"><div className="report-note-icon"><Sparkles size={18} /></div><div><strong>Consistency beats intensity.</strong><p>Your report updates automatically as you solve problems and complete review milestones.</p></div></section>
             </>
           )}
         </div>
-        <footer className="page-footer"><span>ALGORecall <i>·</i> REMEMBER MORE OF WHAT YOU SOLVE</span><span><span className="privacy-dot" /> Your data never leaves this device</span></footer>
+        <footer className="page-footer"><span>ALGORecall <i>·</i> REMEMBER MORE OF WHAT YOU SOLVE</span><span><span className="privacy-dot" /> Your question bank stays on this device</span></footer>
       </main>
 
       <AnimatePresence>
-        {showQuestionForm && <QuestionForm onClose={() => setShowQuestionForm(false)} onSubmit={handleAddQuestion} />}
-        {showDueModal && <DueModal items={dueItems} onClose={() => setShowDueModal(false)} onComplete={handleRevision} onPostpone={handlePostpone} />}
-        {notice && <motion.div className="toast" role="status" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}><span className="toast-check"><Check size={14} /></span>{notice}<button onClick={() => setNotice('')} aria-label="Dismiss message"><X size={14} /></button></motion.div>}
-        {dragging && <motion.div className="drop-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><div><Upload size={28} /><strong>Drop your JSON tracker here</strong><span>We’ll merge it into your local question bank</span></div></motion.div>}
+        {showQuestionForm && <QuestionForm key="question-form" initialDate={questionFormDate} onClose={() => { setShowQuestionForm(false); setQuestionFormDate(undefined); }} onSubmit={handleAddQuestion} />}
+        {showDueModal && <DueModal key="due-modal" items={dueItems} onClose={() => setShowDueModal(false)} onComplete={handleRevision} onPostpone={handlePostpone} />}
+        {notice && <motion.div key="notice" className="toast" role="status" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 8 }}><span className="toast-check"><Check size={14} /></span>{notice}<button onClick={() => setNotice('')} aria-label="Dismiss message"><X size={14} /></button></motion.div>}
+        {dragging && <motion.div key="drop-overlay" className="drop-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}><div><Upload size={28} /><strong>Drop your JSON tracker here</strong><span>We’ll merge it into your local question bank</span></div></motion.div>}
       </AnimatePresence>
       <input ref={importInputRef} type="file" accept=".json,application/json" hidden onChange={(event) => { void importFile(event.target.files?.[0]); event.target.value = ''; }} />
     </div>
@@ -604,13 +667,13 @@ function EmptyState({ icon, title, description, action }: { icon: ReactNode; tit
   return <div className="empty-state"><span className="empty-icon">{icon}</span><strong>{title}</strong><p>{description}</p>{action}</div>;
 }
 
-function QuestionForm({ onClose, onSubmit }: { onClose: () => void; onSubmit: (input: NewQuestion) => Promise<void> }) {
+function QuestionForm({ initialDate, onClose, onSubmit }: { initialDate?: string; onClose: () => void; onSubmit: (input: NewQuestion) => Promise<void> }) {
   const [busy, setBusy] = useState(false);
   const [formError, setFormError] = useState('');
   const [name, setName] = useState('');
   const [topic, setTopic] = useState('');
   const [difficulty, setDifficulty] = useState<Difficulty>('Medium');
-  const [solvedDate, setSolvedDate] = useState(dateKey());
+  const [solvedDate, setSolvedDate] = useState(initialDate ?? dateKey());
   const [problemUrl, setProblemUrl] = useState('');
   const [notes, setNotes] = useState('');
 
